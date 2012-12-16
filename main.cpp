@@ -2,6 +2,7 @@
 #include <queue>
 #include <array>
 #include <cstdlib>
+#include <windows.h>
 #include "Node.h"
 
 //Global Variables
@@ -24,9 +25,17 @@ void setMapStart(int x, int y){Map[y][x].setStart(true);}
 void setMapFinish(int x, int y){Map[y][x].setFinish(true);}
 void setMapObstacle(int x, int y){Map[y][x].setObstacle(true);}
 
+void GotoXY( int x, int y)
+{
+   COORD coord;
+   coord.X = x;
+   coord.Y = y;
+   SetConsoleCursorPosition( GetStdHandle( STD_OUTPUT_HANDLE ), coord );
+}
+
 void printMap()
 {
-	system("CLS");
+	GotoXY(0, 0);
 	for (int y = 0; y < WIDTH; y++)
 	{
 		for (int x = 0; x < WIDTH; x++)
