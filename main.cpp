@@ -17,6 +17,7 @@ Coords* Obstacle = NULL;
 std::vector<Coords*> Obstacles;
 std::queue<Coords> working_set;
 std::queue<Coords> neighbour_set;
+std::queue<Coords> path;
 std::vector<Coords> invalid_set;
 
 void setMapStart(int x, int y){Map[y][x].setStart(true);}
@@ -36,6 +37,8 @@ void printMap()
 				std::cout << "Goal\t";
 			else if (Map[x][y].getObstacle())
 				std::cout << "O\t";
+			else if (Map[x][y].getPath())
+				std::cout << "P\t";
 			else
 			std::cout << Map[x][y].getWeight() << "\t";
 		} 
@@ -66,13 +69,19 @@ bool CheckInvalid(Coords toCheck)
 {
 	//True for Valid, False for Invalid node.
 
-	//Check if Start
-	if (Map[toCheck.x][toCheck.y].getStart())
+
+	//Check if out of bounds
+	if (toCheck.x >= 10)
+		return false;
+	if (toCheck.y >= 10)
 		return false;
 	
-	//Check for Weight
-	if (Map[toCheck.x][toCheck.y].getWeight() != 0)
-		return false;
+	if (state != 2)
+	{
+		//Check for Weight
+		if (Map[toCheck.x][toCheck.y].getWeight() != 0)
+			return false;
+	}
 
 	//Check if Obstacle
 	for (int i = 0; i < Obstacles.size(); i++)
@@ -86,14 +95,17 @@ bool CheckInvalid(Coords toCheck)
 		}
 	}
 
-	//Check invalid list
-	for (int i = 0; i < invalid_set.size(); i++)
+	if (state != 2)
 	{
-		if (toCheck.x == invalid_set[i].x)
+		//Check invalid list
+		for (int i = 0; i < invalid_set.size(); i++)
 		{
-			if (toCheck.y == invalid_set[i].y)
+			if (toCheck.x == invalid_set[i].x)
 			{
-				return false;
+				if (toCheck.y == invalid_set[i].y)
+				{
+					return false;
+				}
 			}
 		}
 	}
@@ -139,7 +151,7 @@ void FindNeighbours()
 				neighbour_set.push(Neighbour);
 		}
 
-		if (ActiveCoords.y < 9) //Has a Bottom Neighbour
+		if (ActiveCoords.y <= 9) //Has a Bottom Neighbour
 		{
 			Neighbour.x = ActiveCoords.x;
 			Neighbour.y = ActiveCoords.y - 1;
@@ -150,14 +162,9 @@ void FindNeighbours()
 	}
 }
 
-int FindDistance()
-{
-	//Find the weight for the active node.
-	return (abs(ActiveCoords.x - StartCoords.x) + abs(ActiveCoords.y - StartCoords.y));
-}
-
 void LeePopulate()
 {
+	int ActiveWeight = 1;
 	while (!Map[FinishCoords.x][FinishCoords.y].getWeight())
 	{
 		printMap();
@@ -165,16 +172,66 @@ void LeePopulate()
 		working_set.pop();
 
 		FindNeighbours();
-		Map[ActiveCoords.x][ActiveCoords.y].setWeight(FindDistance());
+		Map[ActiveCoords.x][ActiveCoords.y].setWeight(ActiveWeight);
 	
 		if (working_set.empty())
 		{
+			ActiveWeight++;
 			working_set = neighbour_set;
 			while (!neighbour_set.empty())
 				neighbour_set.pop();
 		}
 	}
 	state = 2;
+}
+
+void LeeBacktrace()
+{
+	//Some housekeeping so that nothing bad carries over.
+	if (!working_set.empty())
+	{
+		while (!working_set.empty())
+			working_set.pop();
+	}
+
+	int CurrentWeight = 0;
+	Coords Neighbour;
+
+	//Starting from Finish, add all the path nodes leading to goal
+	ActiveCoords = FinishCoords;
+	CurrentWeight = Map[FinishCoords.x][FinishCoords.y].getWeight();
+
+	while (!((ActiveCoords.x == StartCoords.x) && (ActiveCoords.y == StartCoords.y)))
+	{
+		FindNeighbours();
+		do
+		{
+			Neighbour = neighbour_set.front();
+			neighbour_set.pop();
+		}
+		while (Map[Neighbour.x][Neighbour.y].getWeight() > CurrentWeight);
+
+		CurrentWeight = Map[Neighbour.x][Neighbour.y].getWeight();
+		path.push(Neighbour);
+	
+		ActiveCoords = Neighbour;
+
+		while(!neighbour_set.empty())
+			neighbour_set.pop();
+	}
+	
+	state = 3;		
+}
+
+void LeeShowPath()
+{
+	Coords Pathnode;
+	while (!path.empty())
+	{
+		Pathnode = path.front();
+		path.pop();
+		Map[Pathnode.x][Pathnode.y].setPath(true);
+	}
 }
 
 void main()
@@ -188,14 +245,25 @@ void main()
 	PopulateMap(); //Initial map population
 	printMap();
 
-	switch (state)
+	while (true)
 	{
-	case 1:
+		switch (state)
 		{
-			LeePopulate();
-			break;
+		case 1:
+			{
+				LeePopulate();
+			}
+		case 2:
+			{
+				LeeBacktrace();
+			}
+		case 3:
+			{
+				LeeShowPath();
+				break;
+			}
 		}
+		printMap();
+		break;
 	}
-
-	printMap();
 }
