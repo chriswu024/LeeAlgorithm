@@ -173,7 +173,7 @@ void FindNeighbours()
 
 void LeePopulate()
 {
-	int ActiveWeight = 1;
+	int ActiveWeight = 0;
 	while (!Map[FinishCoords.x][FinishCoords.y].getWeight())
 	{
 		printMap();
@@ -217,6 +217,8 @@ void LeeBacktrace()
 		{
 			Neighbour = neighbour_set.front();
 			neighbour_set.pop();
+			if ((Neighbour.x == StartCoords.x) && (Neighbour.y == StartCoords.y))
+				break;
 		}
 		while (Map[Neighbour.x][Neighbour.y].getWeight() > CurrentWeight);
 
@@ -240,6 +242,7 @@ void LeeShowPath()
 		Pathnode = path.front();
 		path.pop();
 		Map[Pathnode.x][Pathnode.y].setPath(true);
+		printMap();
 	}
 }
 
